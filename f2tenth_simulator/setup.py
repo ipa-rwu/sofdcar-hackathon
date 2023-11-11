@@ -20,6 +20,7 @@ setup(
     entry_points={
         "console_scripts": [
              'talker = f2tenth_simulator.kuksa_ros_streamer:main',
+             'rtpm_streamer = f2tenth_simulator.stream_from_topic:main',
         ],
     },
 )
