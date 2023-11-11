@@ -5,27 +5,49 @@ services:
     hostname: "data_broker"
     command: --insecure --metadata /val.json --address 0.0.0.0 --port 55555
     volumes:
-      - ./assets/tele-op-vss-model.json:/val.json 
+      - ./assets/tele-op-vss-model.json:/val.json
     ports:
       - 55555:55555
     networks:
       - ros2
-  simulator:
+
+  ros2_kuksa_client:
+    image: ros2_kuksa_client:latest
     build:
       context: .
-    hostname: simulator
+    hostname: ros2_kuksa_client
+    networks:
+      - ros2
+    command:
+      - bash
+      - -c
+      - |
+        source /opt/ros/humble/setup.sh
+        source /src/install/setup.bash
+        ros2 run f2tenth_simulator talker --ros-args --remap /turtle1/cmd_vel:=/cmd_vel
+
+  turtlesim:
+    image: ros2_kuksa_client:latest
+    hostname: turtlesim
     environment:
-      - width=1900
-      - height=1080
+      - width=1200
+      - height=800
       - x_coord=1
       - y_coord=1
       - angle=0
       - DISPLAY=${DISPLAY}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - .:/workspace:cached
     networks:
       - ros2
+    command:
+      - bash
+      - -c
+      - |
+        source /opt/ros/humble/setup.sh
+        source /src/install/setup.bash
+        ros2 run turtlesim turtlesim_node -w ${width} -h ${height} -x ${x_coord} -y ${y_coord} -r ${angle} -r --remap /turtle1/cmd_vel:=/cmd_vel
+
 networks:
   ros2:
-    name: ros2 
+    name: ros2
