@@ -12,7 +12,7 @@ import threading
 value_torque = 0.
 value_steering_angle = 0.
 value_teleop_enabled = False
-
+value_teleop_brake = 1
 
 class KuksaROS2Streamer(Node):
     def __init__(self):
@@ -21,16 +21,21 @@ class KuksaROS2Streamer(Node):
         self.publisher = self.create_publisher(Twist, "/turtle1/cmd_vel", 10)
 
     def publish(self):
-        global value_torque, value_steering_angle, value_teleop_enabled
+        global value_torque, value_steering_angle, value_teleop_enabled, value_teleop_brake
 
         if value_teleop_enabled:
-            if value_torque > 0:
-                msg = Twist()
-                msg.linear.x = value_torque
-                msg.angular.z = value_steering_angle
+        # if value_torque > 0:
+            msg = Twist()
+            msg.linear.x = value_torque
+            msg.angular.z = value_steering_angle
 
+            # print("Publishing " + str(msg))
+            # self.publisher.publish(msg)
+            if value_teleop_brake == 1:
+                msg.linear.x = 0.0
+                msg.angular.z = 0.0
                 print("Publishing " + str(msg))
-                self.publisher.publish(msg)
+            self.publisher.publish(msg)
 
 
 class KuksaDataSubscriber(threading.Thread):
@@ -41,7 +46,7 @@ class KuksaDataSubscriber(threading.Thread):
 
 
     def run(self) -> None:
-        global value_torque, value_steering_angle, value_teleop_enabled
+        global value_torque, value_steering_angle, value_teleop_enabled, value_teleop_brake
         print("Starting Kuksa Data Subscriber Thread ...")
         with VSSClient("data_broker", 55555) as client:
             for updates in client.subscribe_target_values(
@@ -49,6 +54,7 @@ class KuksaDataSubscriber(threading.Thread):
                     "Vehicle.Teleoperation.Torque",
                     "Vehicle.Teleoperation.SteeringAngle",
                     "Vehicle.Teleoperation.IsEnabled",
+                    "Vehicle.Teleoperation.Brake",
                 ]
             ):
                 if updates.get("Vehicle.Teleoperation.Torque") is not None:
@@ -60,6 +66,10 @@ class KuksaDataSubscriber(threading.Thread):
                 if updates.get("Vehicle.Teleoperation.IsEnabled") is not None:
                     value_teleop_enabled = updates.get(
                         "Vehicle.Teleoperation.IsEnabled"
+                    ).value
+                if updates.get("Vehicle.Teleoperation.Brake") is not None:
+                    value_teleop_brake = updates.get(
+                        "Vehicle.Teleoperation.Brake"
                     ).value
                 self.pub.publish()
 
