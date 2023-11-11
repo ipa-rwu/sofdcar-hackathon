@@ -1,2 +1,4 @@
 *copy*
 .vscode
+env/*
+**/__pycache__
